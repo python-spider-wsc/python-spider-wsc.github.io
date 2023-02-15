@@ -1,0 +1,222 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+<meta name="description" content=""/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title>Hadoop权威指南--第三章：Hadoop分布式文件系统 | spider</title>
+
+<link rel="shortcut icon" href="https://python-spider-wsc.github.io/favicon.ico?v=1676455800585">
+
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://python-spider-wsc.github.io/styles/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dockerfile.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dart.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/moment@2.27.0/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/js/bootstrap.min.js"></script>
+<!-- DEMO JS -->
+<!--<script src="media/scripts/index.js"></script>-->
+
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.css">
+</head>
+<body>
+<div class="main gt-bg-theme-color-first">
+    <nav class="navbar navbar-expand-lg">
+    <div class="navbar-brand">
+        <img class="user-avatar" src="/images/avatar.png" alt="头像">
+        <div class="site-name gt-c-content-color-first">
+            spider
+        </div>
+    </div>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars gt-c-content-color-first" style="font-size: 18px"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav mr-auto" style="text-align: center">
+            
+                <div class="nav-item">
+                    
+                        <a href="/" class="menu gt-a-link">
+                            首页
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/archives" class="menu gt-a-link">
+                            归档
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tags" class="menu gt-a-link">
+                            标签
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tag/python" class="menu gt-a-link">
+                            python
+                        </a>
+                    
+                </div>
+            
+        </div>
+        <div style="text-align: center">
+            <form id="gridea-search-form" style="position: relative" data-update="1676455800585" action="/search/index.html">
+                <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+                <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i>
+            </form>
+        </div>
+    </div>
+</nav>
+
+    <div class="post-container">
+        <div class="post-detail gt-bg-theme-color-second">
+            <article class="gt-post-content">
+                <h2 class="post-title">
+                    Hadoop权威指南--第三章：Hadoop分布式文件系统
+                </h2>
+                <div class="post-info">
+                    <time class="post-time gt-c-content-color-first">
+                        · 2023-02-10 ·
+                    </time>
+                    
+                        <a href="https://python-spider-wsc.github.io/tag/bigdata/" class="post-tags">
+                            # 大数据
+                        </a>
+                    
+                </div>
+                <div class="post-content">
+                    <p>Hadoop自带一个分布式文件系统，称为HDFS或者DFS</p>
+<h2 id="1-hdfs的设计">1、HDFS的设计</h2>
+<p>HDFS以流式数据访问模式来存储超大文件，运行于商用硬件集群上。  具有以下特点：</p>
+<ul>
+<li>超大文件存储。对超大文件进行分区并存储到若干台独立的物理计算机上。</li>
+<li>流式数据访问。HDFS的构建思路：一次写入，多次读取。流式数据访问只需要一次寻址，因此读取整个数据集的时间延迟更加重要。</li>
+<li>商用硬件。HDFS能够容忍节点故障且不丢失任何数据，同时不会让用户察觉到明显的中断。</li>
+</ul>
+<p>HDFS对以下应用并不合适，需要继续改进：</p>
+<ul>
+<li>低时间延迟的数据访问。HDFS是为了高数据吞吐量应用优化的，这会以提高时间延迟为代价。目前对于低延迟访问，HBase是更好的选择。</li>
+<li>大量的小文件。 namenode将文件系统的元数据（例如权限信息）存储到内存中，因此文件系统所能存储的文件总数受限于namenode的内存容量。</li>
+<li>多用户写，任意修改文件。HDFS中的文件写入只支持单个写入者，而且总以”只添加“的方式在文件末尾写数据。也不支持在文件的任意位置进行修改。</li>
+</ul>
+<h2 id="2-hdfs的概念">2、HDFS的概念</h2>
+<h3 id="21-数据块">2.1 数据块</h3>
+<p>HDFS上的文件也会被划分为块大小的多个分块</p>
+<ul>
+<li>HDFS的块大小默认为128MB。块设置这么大，是为了最小化寻址开销。例如寻址时间为10ms，为了使寻址时间占传输时间的1%，那传输时间就是1s。而磁盘的传输速率为100MB/s，那块的大小应该是100MB。但是块大小也不会设置的太大，MapReduce中的map任务通常一次只处理一个块的数据。如果块太大，那块的数量就会太少，作业运行速度就会比较慢。</li>
+<li>HDFS中小于一个块大小的文件也不会占据整个块的空间。</li>
+<li>大于块大小的文件也不需要存储在同一个磁盘上，它们可以在集群上的任意磁盘上存储。</li>
+<li>使用抽象块作为存储单元，而不是整个文件，可简化存储管理。计算单个磁盘可以存储多少个块就比较简单。</li>
+<li>消除元数据的顾虑。块只要存储大块的数据就可以了，而文件的元数据可以由其它系统单独管理。</li>
+<li>块非常是和用于数据的备份，进而提高数据的容错能力。</li>
+</ul>
+<h3 id="22-namenode-和datanode">2.2 namenode 和datanode</h3>
+<p>HDFS集群中有两类节点，即namenode 和 datanode。它们以管理节点-工作节点的模式运行（一个管理节点namenode和多个工作节点datanode）。</p>
+<ul>
+<li>namenode管理文件系统的命名空间。
+<ul>
+<li>它维护着文件系统树及整棵树内的所有文件和目录，这些信息以两个文件的形式永久保存在本地磁盘上：命名空间镜像文件（fsimage）和编辑日志文件（edits）。在<code>tmp/dfs/name/current</code>目录下可以找到这些文件</li>
+<li>同时也记录着每个文件中各个块所在的数据节点信息。这些信息不会永久保存。而是根据datanode重建。</li>
+<li>为了防止edits中保存的最新变更记录过大，HDFS会定期合并fsimage和edits文件形成新的fsimage文件，然后重新记录edits文件。由于namenode只有一个，所以会把fsimage和edits的合并的工作放到SecondaryNameNode上（Hadoop2.0之后），以减少namenode的压力。</li>
+</ul>
+</li>
+<li>datanode是文件系统的工作节点。
+<ul>
+<li>根据需要存储或检索数据块</li>
+<li>定期向namenode发送所存储块的列表</li>
+</ul>
+</li>
+</ul>
+<p>1、客户端连接到namenode，执行文件系统的“命名空间”操作，例如打开、关闭、重命名文件和目录，同时决定“数据块”到具体datanode节点的映射。<br>
+2、datanode在namenode的指挥下进行“数据块”的创建、删除和复制。<br>
+3、客户端连接到datanode，执行读写数据块操作。 对于访问频繁的文件，其对应的块可能会缓存在datanode的内存中。可以利用块缓存的优势提高读操作的性能。用户可以通过缓存池通知namenode需要缓存哪些文件以及缓存多久。</p>
+<p>当文件储存时，每个块就会进行复制备份，一般是3份（可配置）。当datanode宕机时，会马上使用备份文件，同时根据最大备份数再次进行数据的备份。所以datanode宕机一般不会对数据造成影响。<br>
+但是如果namenode宕机，则整个文件系统将会无法使用。因此对namenode的容错非常重要。Hadoop一般提供两种机制：</p>
+<ul>
+<li>对组成文件系统的元数据的持久文件进行备份，一般做法是：将持久状态写入本地磁盘的同时，写入一个远程挂载的网络文件系统（NFS）</li>
+<li>运行一个辅助的namenode，即SecondaryNameNode。但是辅助的namenode保存的状态总是滞后于namenode，如果直接使用辅助namenode的元数据，难免会造成数据的丢失。一般是把存储在NFS的namenode元数据复制到辅助namenode并作为新的namenode运行。</li>
+</ul>
+<p>namenode一般来说只有一个节点，那么该节点的内存大小将成为超大集群的限制瓶颈。Hadoop2.0之后的版本引入了联邦HDFS的概念，允许系统添加多个namenode来实现内存的扩展。在联邦环境下，每个namenode维护一个独立的命名空间卷，由命名空间的元数据和一个数据块池组成。两两之间不会相互影响和通信。集群中的datanode需要注册到每个namenode,而且存储着多个namenode中数据池中的数据块。</p>
+<h3 id="23-hdfs的高可用性">2.3 HDFS的高可用性</h3>
+<p>前面针对namenode的数据完整性的两大机制，但是namenode依然存在着单点失效的问题。如果namenode宕机了，那么所有的客户端均无法读写，因为namenode是唯一存储元数据和文件到数据块映射的地方。在这样的情况下，Hadoop系统直到新的namenode上线（按照两大机制上线）才能继续提供服务。这个过程需要系统管理员启动一个新的namenode，并配置datanode和客户端使用新的namenode。<br>
+为了解决这个问题，Hadoop2增加了对HDFS高可用性（HA）的支持。在这一实现中，配置了一对（活动和备份）namenode。当活动的namenode失效，备用的namenode会接管它的任务，不会有任何明显的中断。实现这一目标需要如下修改：</p>
+<ul>
+<li>namenode之间通过高可用共享文件系统实现编辑日志的共享。主namenode向文件系统写入数据，而备份namenode读取共享数据实现与主namenode的状态同步。</li>
+<li>datanode需要同时向两个namenode发送数据块处理报告。</li>
+<li>辅助namenode的角色被备用namenode所包含。<br>
+高可用共享文件存储系统常用的有两种：NFS过滤器和群体日志管理器（QJM）。<br>
+如果活动和备用的namenode都失效了，管理员依旧可以声明一个备用namenode并实现冷启动。</li>
+</ul>
+<h3 id="24-故障切换与规避">2.4 故障切换与规避</h3>
+<p>namenode的切换是由一个称为故障转移控制器（failover controller）的实体操作的，有很多种故障转移控制器，但默认使用ZooKeeper来确保有且仅有一个活动的namenode。其原理就是监控活动的namenode是否失效（心跳机制）并在失效时进行故障切换。注意：我们无法确切的知道判断为失效的namenode是否真的已经停止运行（存在误判的可能）。高可用针对这一问题，作了进一步的优化，以确保之前活动的namenode不会对系统产生影响，该方法称为规避（fencing）</p>
+
+                </div>
+            </article>
+        </div>
+
+        
+            <div class="next-post">
+                <div class="next gt-c-content-color-first">下一篇</div>
+                <a href="https://python-spider-wsc.github.io/post/ast-fan-hun-yao/" class="post-title gt-a-link">
+                    AST反混淆
+                </a>
+            </div>
+        
+
+        
+
+        
+
+        
+
+        <div class="site-footer gt-c-content-color-first">
+    <div class="slogan gt-c-content-color-first"></div>
+    <div class="social-container">
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+    </div>
+    <div class="footer-info">
+        
+    </div>
+    <div>
+        Theme by <a href="https://imhanjie.com/" target="_blank">imhanjie</a>, Powered by <a
+                href="https://github.com/getgridea/gridea" target="_blank">Gridea | <a href="https://python-spider-wsc.github.io/atom.xml" target="_blank">RSS</a></a>
+    </div>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+    </div>
+</div>
+</body>
+</html>

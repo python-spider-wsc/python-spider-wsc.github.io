@@ -1,0 +1,373 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+<meta name="description" content=""/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title>AST反混淆 | spider</title>
+
+<link rel="shortcut icon" href="https://python-spider-wsc.github.io/favicon.ico?v=1676455800585">
+
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://python-spider-wsc.github.io/styles/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dockerfile.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dart.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/moment@2.27.0/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/js/bootstrap.min.js"></script>
+<!-- DEMO JS -->
+<!--<script src="media/scripts/index.js"></script>-->
+
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.css">
+</head>
+<body>
+<div class="main gt-bg-theme-color-first">
+    <nav class="navbar navbar-expand-lg">
+    <div class="navbar-brand">
+        <img class="user-avatar" src="/images/avatar.png" alt="头像">
+        <div class="site-name gt-c-content-color-first">
+            spider
+        </div>
+    </div>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars gt-c-content-color-first" style="font-size: 18px"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav mr-auto" style="text-align: center">
+            
+                <div class="nav-item">
+                    
+                        <a href="/" class="menu gt-a-link">
+                            首页
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/archives" class="menu gt-a-link">
+                            归档
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tags" class="menu gt-a-link">
+                            标签
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tag/python" class="menu gt-a-link">
+                            python
+                        </a>
+                    
+                </div>
+            
+        </div>
+        <div style="text-align: center">
+            <form id="gridea-search-form" style="position: relative" data-update="1676455800585" action="/search/index.html">
+                <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+                <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i>
+            </form>
+        </div>
+    </div>
+</nav>
+
+    <div class="post-container">
+        <div class="post-detail gt-bg-theme-color-second">
+            <article class="gt-post-content">
+                <h2 class="post-title">
+                    AST反混淆
+                </h2>
+                <div class="post-info">
+                    <time class="post-time gt-c-content-color-first">
+                        · 2022-08-16 ·
+                    </time>
+                    
+                        <a href="https://python-spider-wsc.github.io/tag/ast/" class="post-tags">
+                            # AST
+                        </a>
+                    
+                </div>
+                <div class="post-content">
+                    <h1 id="混淆js">混淆JS</h1>
+<figure data-type="image" tabindex="1"><img src="https://python-spider-wsc.github.io/post-images/1660639951015.png" alt="" loading="lazy"></figure>
+<h2 id="编码转换">编码转换</h2>
+<p>混淆的js如下：</p>
+<pre><code class="language-javascript">parseInt(aw('\x69\x40\x5a\x45', 0x142, 0xd4, -0xa5, 0x1c4)) 
+</code></pre>
+<p>可以看到<code>\x4c\x70\x33\x62</code> 和16进制的数字，首先将这样的混淆解析成功</p>
+<p><img src="https://python-spider-wsc.github.io/post-images/1660639239145.png" alt="" loading="lazy"><br>
+只需要将<code>extra</code>属性去掉即可，代码如下：</p>
+<pre><code>path.get('extra').remove();
+</code></pre>
+<h2 id="四项表达式替换为结果">四项表达式替换为结果</h2>
+<p>还可以看到很多这样的四项表达式：</p>
+<pre><code class="language-javascript">-0xb * -0x36d + -0x387 + -0x2228
+</code></pre>
+<p>计算表达式的结果进行替换。<br>
+思路：</p>
+<ul>
+<li>遍历<code>BinaryExpression</code></li>
+<li>其左右节点是<code>UnaryExpression</code> 或者 <code>NumericLiteral</code></li>
+<li>若左右节点其中是<code>UnaryExpression</code> ，其<code>argument</code>必须是<code>NumericLiteral</code></li>
+<li>将节点的<code>Node</code>转为js语句，使用<code>eval</code>执行得到结果</li>
+<li>替换结果</li>
+</ul>
+<pre><code class="language-javascript">  node = path.node
+  //左边不是`number`或者` -number` 或者右边不是， 返回
+  if(!(t.isNumericLiteral(node.left) || t.isUnaryExpression(node.left)) || !(t.isNumericLiteral(node.right) || t.isUnaryExpression(node.right))) return;
+  
+  if (t.isUnaryExpression(node.left) &amp;&amp; !t.isNumericLiteral(node.left.argument)) return;
+  if (t.isUnaryExpression(node.right) &amp;&amp; !t.isNumericLiteral(node.right.argument)) return;
+  let { code } = generator(node)
+  path.replaceWith(t.NumericLiteral(eval(code)))
+</code></pre>
+<h2 id="自执行函数的实参代替形参">自执行函数的实参代替形参</h2>
+<p>经过上面的转换，可以发现有一部分自执行函数：</p>
+<pre><code class="language-javascript">(function (g, h) {
+  function az(g, h, al, am, an) {
+    return f(am - 799, g);
+  }
+  function aw(g, h, al, am, an) {
+    return f(h - 44, g);
+  }
+  const al = g();
+  while (true) {
+    try {
+      const am = -parseInt(aw(&quot;i@ZE&quot;, 322, 212, -165, 452)) / 1 * (-parseInt(aw(&quot;i@ZE&quot;, 1588, 2182, 1433, 1510)) / 2) + parseInt(ax(1333, 1138, &quot;13#5&quot;, 1723, 1657)) / 3 * (parseInt(ax(2375, 1308, &quot;#a92&quot;, 1992, 2410)) / 4) + -parseInt(aw(&quot;!($B&quot;, 1669, 2056, 1773, 1584)) / 5 + parseInt(ay(1722, 1422, 647, &quot;z!AQ&quot;, 970)) / 6 + parseInt(ay(1353, 1729, 1554, &quot;#a92&quot;, 1008)) / 7 + parseInt(ay(2124, 1667, 2519, &quot;!($B&quot;, 2071)) / 8 + parseInt(aA(254, 1353, 289, &quot;$HB4&quot;, 899)) / 9 * (-parseInt(az(&quot;Lp3b&quot;, 2104, 1613, 1691, 1388)) / 10);
+      if (am === h) break;else al[&quot;push&quot;](al[&quot;shift&quot;]());
+    } catch (an) {
+      al[&quot;push&quot;](al[&quot;shift&quot;]());
+    }
+  }
+})(e, 642386);
+</code></pre>
+<p>这里要将实参e和642386 直接替换形参g和h，思路如下：</p>
+<ul>
+<li>遍历<code>CallExpression</code></li>
+<li><code>CallExpression</code>的<code>callee</code>必须是<code>FunctionExpression</code>， 而且实参个数大于0</li>
+<li>遍历每个形参，获取自执行函数的作用域下每个形参的引用</li>
+<li>形参必须有引用（无引用则为无效参数，可以删除，如果有对应的实参，也要删除）</li>
+<li>如果该形参被修改了（<code>constantViolations</code>不为空数组），直接跳过</li>
+<li>遍历该形参的所有引用（<code>referencePaths</code>），替换为对应的实参</li>
+<li>移除形参，如果有对应的实参，也要删除</li>
+</ul>
+<pre><code class="language-javascript">   let callee = path.get('callee');
+  let arguments = path.get('arguments');
+  if(!t.isFunctionExpression(callee) || arguments.length ===0)return; // callee是FunctionExpression， 而且有实参
+  let params = callee.get('params'); // 获取形参
+  let scope = callee.scope;
+  // 一般形参的个数比实参的个数多
+  for ( let i =0; i&lt; params.length; i++){
+    let arg = params[i];
+    let {name} = arg.node;
+    const binding = scope.getBinding(name);
+    if(!binding || (binding.constantViolations.length &gt; 0 &amp;&amp; binding.referencePaths.length&gt;0))continue;
+    for(refer_path of binding.referencePaths){
+        refer_path.replaceWith(arguments[i]);
+    }
+    arg.remove();
+    if (i&lt;arguments.length) arguments[i].remove();
+  }
+</code></pre>
+<p>同时注意，这次遍历应在四项表达式替换完成之后。</p>
+<h2 id="子函数的替换">子函数的替换</h2>
+<p>同时观察上面自执行函数的特点，可以发现<code>aw</code>等子函数具有以下特点：</p>
+<ul>
+<li>子函数只有一条语句，而且还是返回语句</li>
+<li>该返回语句是一个函数调用语句</li>
+</ul>
+<p>那么可以直接将<code>aw</code>等子函数使用返回语句替换，同时注意形参和实参的替换。思路如下：</p>
+<ul>
+<li>遍历<code>FunctionDeclaration</code></li>
+<li>函数只有一条返回语句，而且该语句是函数调用语句</li>
+<li>该函数存在父函数</li>
+<li>在父函数空间内，查找该函数的引用</li>
+<li>遍历每个函数的引用，用实参替换形参
+<ul>
+<li>首先将函数重新转为代码，再进行AST</li>
+<li>再次遍历<code>FunctionDeclaration</code></li>
+<li>执行将形参替换为实参</li>
+<li>将函数的引用替换为解析完实参的调用函数</li>
+</ul>
+</li>
+</ul>
+<p>代码如下：</p>
+<pre><code class="language-javascript">let body = path.get(&quot;body&quot;); // 函数体
+  // 函数只有一条返回语句，而且该语句是函数调用语句
+if (!(t.isBlockStatement(body) &amp;&amp; body.node.body.length==1 &amp;&amp;t.isReturnStatement(body.node.body[0])&amp;&amp;t.isCallExpression(body.node.body[0].argument))) return;
+  parent = path.getFunctionParent(); // 父函数
+  if(!parent) return;
+  // 函数的作用域
+  let binding = parent.scope.getBinding(path.node.id.name); // 函数名
+  let paths = binding.referencePaths;
+  // 找到函数的每个引用
+  let { code } = generator(path.node) // 函数有多个引用不能直接修改函数
+  for (let i = 0; i &lt; paths.length; i++) {
+    let args = paths[i].parent.arguments; // 实参
+    var newAst = parser.parse(code); // 重新生成函数，可以直接修改函数 
+    // 直接替换函数的形参和实参
+    traverse(newAst,{
+      FunctionDeclaration(_path) {
+        let params = _path.get('params') //形参
+        let subFuncScope = _path.scope; // 函数内部的作用域
+        for (let j = 0; j &lt;args.length; j++) {
+          let {name} = params[j].node; //形参名
+          const binding = subFuncScope.getBinding(name);
+          for(refer_path of binding.referencePaths){
+              refer_path.replaceWith(args[j]);
+          }
+        }
+        paths[i].parentPath.replaceWith(_path.get(&quot;body&quot;).node.body[0].argument)  
+    }
+    });
+  }
+</code></pre>
+<p>应该存在不需要将函数重新转为代码的方法，暂时记下，以后研究。</p>
+<h2 id="清除未调用的函数">清除未调用的函数</h2>
+<p>经过上面的函数的替换操作后，会有很多未调用的函数，需要删除，删除操作很简单：</p>
+<ul>
+<li>遍历<code>FunctionDeclaration</code></li>
+<li>在父作用域下，查找该函数的引用</li>
+<li>引用为0，即可删除该函数。</li>
+</ul>
+<p>问题是经过上面的操作，AST没有更新，即仍存在该函数的引用，不知道该怎么办。只能保存在文件，再次读取文件，进行删除函数的操作。</p>
+<h2 id="函数调用还原为结果字符串">函数调用还原为结果字符串</h2>
+<p>经过上面操作之后，发现又出现了四项表达式，再次调用上面的<a href="#%E5%9B%9B%E9%A1%B9%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%9B%BF%E6%8D%A2%E4%B8%BA%E7%BB%93%E6%9E%9C">代码</a>还原。<br>
+继续观察，发现有很多<code>f(a1, a2)</code>的函数调用，分析以下，该函数应该是个解密函数，接下来就要把该函数的调用替换为结果字符串。<br>
+可以看出<code>f(a1, a2)</code>确实是解密函数，我们要把这个函数剪切到另一个解密文件中，并让其可以运行，这样就可以直接调用这个函数得到解密结果，替换所有的<code>f(a1, a2)</code>的函数调用。<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660794413456.png" alt="" loading="lazy"><br>
+可以发现还少了一个<code>e()</code>函数，同样剪切出来：<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660794715883.png" alt="" loading="lazy"><br>
+可以发现这个<code>e()</code>函数其实就是个大数组，很像OB混淆。<br>
+然后随便找一个解密函数<code>f(278, &quot;i@ZE&quot;)</code>, 在这个新的解密文件中执行解密，发现竟然报内存溢出的错误，难道是之前的反混淆操作出错了？还好这个解密文件还算简单，仔细看一下哪里出问题了：<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660809365743.png" alt="" loading="lazy"><br>
+果然这里定义了个函数<code>this[&quot;NADmAW&quot;]</code>，同时使用正则表达式检测该函数是否格式化，如果格式化，则进入死循环。<br>
+将这个函数压缩一下，继续执行，发现果然不报错了，但是执行的结果却是乱码，显然不对。这里回到反混淆之后的代码看一下：<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660810225918.png" alt="" loading="lazy"><br>
+一般OB混淆都会对大数组进行移位操作，这里果然也有，同样剪切出来，这样就可以了。之后就是反混淆了，思路如下：</p>
+<ul>
+<li>从解密文件中引入解密函数</li>
+<li>遍历<code>CallExpression</code>， 判断函数名是解密函数</li>
+<li>将参数传入解密函数，得到结果代替<code>CallExpression</code></li>
+</ul>
+<pre><code class="language-javascript">  let node = path.node;
+  // 函数名字相同
+  if (!t.isIdentifier(node.callee, {name: decryptStrFnName})) return;
+  try {
+      const result = decryptStr(node.arguments[0].value, node.arguments[1].value)
+      path.replaceWith(t.stringLiteral(result))
+  } catch (error) {
+      console.log(node.arguments[0].value, node.arguments[1].value)
+  }
+</code></pre>
+<p>解密之后，又出现大量的字符串相加的情况，再次调用上面的<a href="#%E5%9B%9B%E9%A1%B9%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%9B%BF%E6%8D%A2%E4%B8%BA%E7%BB%93%E6%9E%9C">代码</a>还原。</p>
+<h2 id="成员表达式转成属性表达式">成员表达式转成属性表达式</h2>
+<p>把<code>a[&quot;b&quot;]</code>转成<code>a.b</code>，更容易阅读（慎用，有可能会出错，比如属性包含特殊符号（-+））<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660814310155.png" alt="" loading="lazy"><br>
+思路如下：</p>
+<ul>
+<li>遍历<code>MemberExpression</code></li>
+<li><code>property</code>必须是<code>StringLiteral</code></li>
+<li>把<code>computed</code>置成<code>false</code>，然后把<code>value</code>变成<code>Identifier</code></li>
+</ul>
+<p>代码如下：</p>
+<pre><code class="language-javascript">  let property = path.get('property');
+  if (!t.isStringLiteral(property)) return;
+  let value = property.node.value;
+  if(value.indexOf(&quot;-&quot;)&gt;0) return;
+  path.node.computed = false;
+  property.replaceWith(t.Identifier(value))
+</code></pre>
+<h2 id="修改逗号表达式">修改逗号表达式</h2>
+<p>逗号表达式也不利于阅读，把逗号表达书拆分出来，因为逗号表达式应用过于灵活，暂时还原部分逗号表达式。<br>
+思路如下：</p>
+<ul>
+<li>遍历<code>SequenceExpression</code></li>
+<li>判断是否存在父级语句块<code>getStatementParent</code></li>
+<li>在父级语句前插入其他的逗号语句</li>
+</ul>
+<pre><code class="language-javascript">  let expressions = path.get('expressions');
+  let last_expression = expressions.pop();
+  let parentStatement = path.getStatementParent();
+  if(parentStatement){
+    for(let expression of expressions){
+      // 删除无用的干扰代码
+      if(expression.isLiteral() ||expression.isIdentifier()){
+          expression.remove();
+          continue;
+      }
+      parentStatement.insertBefore(t.ExpressionStatement(expression=expression.node));
+    }
+    path.replaceInline(last_expression);
+  }
+</code></pre>
+<p>最后看一下反混淆的成果：<br>
+<img src="https://python-spider-wsc.github.io/post-images/1660820178317.png" alt="" loading="lazy"></p>
+
+                </div>
+            </article>
+        </div>
+
+        
+            <div class="next-post">
+                <div class="next gt-c-content-color-first">下一篇</div>
+                <a href="https://python-spider-wsc.github.io/post/luo-ji-hui-gui-de-suan-fa-si-xiang-yu-shi-xian/" class="post-title gt-a-link">
+                    逻辑回归的算法思想与实现
+                </a>
+            </div>
+        
+
+        
+
+        
+
+        
+
+        <div class="site-footer gt-c-content-color-first">
+    <div class="slogan gt-c-content-color-first"></div>
+    <div class="social-container">
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+    </div>
+    <div class="footer-info">
+        
+    </div>
+    <div>
+        Theme by <a href="https://imhanjie.com/" target="_blank">imhanjie</a>, Powered by <a
+                href="https://github.com/getgridea/gridea" target="_blank">Gridea | <a href="https://python-spider-wsc.github.io/atom.xml" target="_blank">RSS</a></a>
+    </div>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+    </div>
+</div>
+</body>
+</html>

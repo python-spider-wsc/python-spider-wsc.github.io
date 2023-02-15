@@ -1,0 +1,211 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+<meta name="description" content=""/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title>Hadoop权威指南--4-关于YARN | spider</title>
+
+<link rel="shortcut icon" href="https://python-spider-wsc.github.io/favicon.ico?v=1676455800585">
+
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://python-spider-wsc.github.io/styles/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/css/bootstrap.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets/highlight.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dockerfile.min.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.15.10/languages/dart.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/moment@2.27.0/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/js/bootstrap.min.js"></script>
+<!-- DEMO JS -->
+<!--<script src="media/scripts/index.js"></script>-->
+
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.css">
+</head>
+<body>
+<div class="main gt-bg-theme-color-first">
+    <nav class="navbar navbar-expand-lg">
+    <div class="navbar-brand">
+        <img class="user-avatar" src="/images/avatar.png" alt="头像">
+        <div class="site-name gt-c-content-color-first">
+            spider
+        </div>
+    </div>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fas fa-bars gt-c-content-color-first" style="font-size: 18px"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <div class="navbar-nav mr-auto" style="text-align: center">
+            
+                <div class="nav-item">
+                    
+                        <a href="/" class="menu gt-a-link">
+                            首页
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/archives" class="menu gt-a-link">
+                            归档
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tags" class="menu gt-a-link">
+                            标签
+                        </a>
+                    
+                </div>
+            
+                <div class="nav-item">
+                    
+                        <a href="/tag/python" class="menu gt-a-link">
+                            python
+                        </a>
+                    
+                </div>
+            
+        </div>
+        <div style="text-align: center">
+            <form id="gridea-search-form" style="position: relative" data-update="1676455800585" action="/search/index.html">
+                <input class="search-input" autocomplete="off" spellcheck="false" name="q" placeholder="搜索文章" />
+                <i class="fas fa-search gt-c-content-color-first" style="position: absolute; top: 9px; left: 10px;"></i>
+            </form>
+        </div>
+    </div>
+</nav>
+
+    <div class="post-container">
+        <div class="post-detail gt-bg-theme-color-second">
+            <article class="gt-post-content">
+                <h2 class="post-title">
+                    Hadoop权威指南--4-关于YARN
+                </h2>
+                <div class="post-info">
+                    <time class="post-time gt-c-content-color-first">
+                        · 2023-02-15 ·
+                    </time>
+                    
+                        <a href="https://python-spider-wsc.github.io/tag/bigdata/" class="post-tags">
+                            # 大数据
+                        </a>
+                    
+                </div>
+                <div class="post-content">
+                    <p>Apache YARN(Yet Another Resource Negotiator)是Hadoop的集群资源管理系统，提供请求和使用集群资源的API，这些API被更上层的分布式计算框架使用。<br>
+<img src="https://python-spider-wsc.github.io/post-images/1676444186948.png" alt="" loading="lazy"></p>
+<h2 id="1-yarn的运行机制">1、YARN的运行机制</h2>
+<p>YARN通过两类长期运行的守护进程提供自己的核心服务：负责为运算程序提供服务器运算资源，相当于一个分布式的操作系统平台</p>
+<ul>
+<li>资源管理器：主要是管理集群上资源的使用。</li>
+<li>节点管理器：运行在集群所有的节点上，而且能够启动和监控容器。</li>
+<li>容器：任务在申请到的资源后在节点上启动的进程</li>
+<li>ApplicationMaster：一个特殊的进程，实际上是特定计算框架的一个实例。负责与资源管理器协商资源，并和节点管理器协同来执行和监控容器。</li>
+</ul>
+<p>YARN的工作流程如下：<br>
+1、作业任务提交：用户将MapReduce或其它任务提交到集群。主要分以下几步：</p>
+<ul>
+<li>客户端向集群提交作业</li>
+<li>资源管理器向客户端返回分配新的作业ID和资源提交路径</li>
+<li>客户端提交jar包，切片信息和配置文件到指定的资源提交路径</li>
+</ul>
+<p>2、作业的初始化：当资源提交完成之后，就会开始作业的初始化步骤：</p>
+<ul>
+<li>资源管理器会收到运行ApplicationMaster的请求，将该任务添加到容器调度器中</li>
+<li>容器调度器会根据资源和队列的要求，选择一个合适的节点管理器</li>
+<li>该节点管理器会创建一个特殊的容器，即ApplicationMaster</li>
+<li>下载客户端提交的资源到本地</li>
+</ul>
+<p>3、作业分配：如果作业只是运行一个简单的计算，就不要分配任务了。如果需要向资源管理器请求更多的容器，以运行一个分布式计算，就需要作业的分配。</p>
+<ul>
+<li>ApplicationMaster向资源管理器请求容器来运行任务。会向这样的节点请求容器：存储该数据块三个复本的节点，或者是这些复本机架中的任何一个节点，如果都失败了，则申请集群中的任意节点。</li>
+<li>容器申请成功后，资源管理器会通知对应的节点管理器领取任务，创建容器。</li>
+</ul>
+<p>4、作业运行</p>
+<ul>
+<li>资源管理器会给节点管理器发送容器启动脚本</li>
+<li>ApplicationMaster等待作业运行完成，判断是否需要申请容器，运行reduce任务。</li>
+</ul>
+<p>5、进度和状态更新<br>
+YARN中的任务将其进度和状态(包括容器)返回给ApplicationMaster, 客户端每秒向ApplicationMaster请求进度更新, 展示给用户。<br>
+6、作业完成<br>
+客户端会向ApplicationMaster请求作业是否完成，当作业完成时，相应的容器和ApplicationMaster会清理工作状态。</p>
+<h2 id="2-应用生命期">2、应用生命期</h2>
+<p>应用生命期有三种模型：</p>
+<ul>
+<li>一个作业对应一个应用，MapReduce采用这个方式。</li>
+<li>工作流的方式，效率更高，因为容器可以在作业之间重用。Spark采用这个方式。</li>
+<li>多个用户共享一个长期运行的应用。这意味着用户将获得非常低延迟的查询响应。</li>
+</ul>
+<p>YARN的最大优点在于向MapReduce以外的其它类型的分布式应用开放了Hadoop。</p>
+<h2 id="yarn中的调度">YARN中的调度</h2>
+<p>理想情况下，YARN应用发出的资源请求应该马上得到满足。然而资源是是有限，所以需要进行资源的调度。YARN调度器的工作就是根据既定策略为应用分配资源。</p>
+<ul>
+<li>FIFO调度器：按照先进先出的顺序运行应用。简单易懂，不需要配置，但是不适合共享集群。</li>
+<li>容量调度器：一个专门的队列保证小任务能够很快启动，但是牺牲了整个集群的使用率。</li>
+<li>公平调度器：不需要预留资源，调度器会在所有运行的作业之间动态平衡资源。</li>
+</ul>
+
+                </div>
+            </article>
+        </div>
+
+        
+            <div class="next-post">
+                <div class="next gt-c-content-color-first">下一篇</div>
+                <a href="https://python-spider-wsc.github.io/post/hadoop-qwzn3-hdfs/" class="post-title gt-a-link">
+                    Hadoop权威指南--第三章：Hadoop分布式文件系统
+                </a>
+            </div>
+        
+
+        
+
+        
+
+        
+
+        <div class="site-footer gt-c-content-color-first">
+    <div class="slogan gt-c-content-color-first"></div>
+    <div class="social-container">
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+    </div>
+    <div class="footer-info">
+        
+    </div>
+    <div>
+        Theme by <a href="https://imhanjie.com/" target="_blank">imhanjie</a>, Powered by <a
+                href="https://github.com/getgridea/gridea" target="_blank">Gridea | <a href="https://python-spider-wsc.github.io/atom.xml" target="_blank">RSS</a></a>
+    </div>
+</div>
+
+<script>
+  hljs.initHighlightingOnLoad()
+</script>
+
+    </div>
+</div>
+</body>
+</html>

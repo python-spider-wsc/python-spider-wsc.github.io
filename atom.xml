@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://python-spider-wsc.github.io</id>
+    <title>spider</title>
+    <updated>2023-02-15T10:10:05.273Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://python-spider-wsc.github.io"/>
+    <link rel="self" href="https://python-spider-wsc.github.io/atom.xml"/>
+    <logo>https://python-spider-wsc.github.io/images/avatar.png</logo>
+    <icon>https://python-spider-wsc.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2023, spider</rights>
+    <entry>
+        <title type="html"><![CDATA[Hadoop权威指南--4-关于YARN]]></title>
+        <id>https://python-spider-wsc.github.io/post/hadoop-qwzn4-yarn/</id>
+        <link href="https://python-spider-wsc.github.io/post/hadoop-qwzn4-yarn/">
+        </link>
+        <updated>2023-02-15T06:26:28.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Hadoop权威指南--第三章：Hadoop分布式文件系统]]></title>
+        <id>https://python-spider-wsc.github.io/post/hadoop-qwzn3-hdfs/</id>
+        <link href="https://python-spider-wsc.github.io/post/hadoop-qwzn3-hdfs/">
+        </link>
+        <updated>2023-02-10T07:51:29.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[AST反混淆]]></title>
+        <id>https://python-spider-wsc.github.io/post/ast-fan-hun-yao/</id>
+        <link href="https://python-spider-wsc.github.io/post/ast-fan-hun-yao/">
+        </link>
+        <updated>2022-08-16T08:32:38.000Z</updated>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[逻辑回归的算法思想与实现]]></title>
+        <id>https://python-spider-wsc.github.io/post/luo-ji-hui-gui-de-suan-fa-si-xiang-yu-shi-xian/</id>
+        <link href="https://python-spider-wsc.github.io/post/luo-ji-hui-gui-de-suan-fa-si-xiang-yu-shi-xian/">
+        </link>
+        <updated>2022-07-28T07:51:31.000Z</updated>
+    </entry>
+</feed>
